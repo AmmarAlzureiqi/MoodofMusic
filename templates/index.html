@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icon.png') }}">
+    <link href="{{ url_for('static', filename='styles/styles_index.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div id="bg"></div>
+    <div class="container">
+        <div class="title-container">
+            <img src="{{ url_for('static', filename='icon.png') }}" alt="Icon" class="icon">
+            <h1>Welcome to my Spotify App</h1>
+        </div>
+        <a href="/login" class="login-btn">Login with Spotify</a>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+    <script src="{{ url_for('static', filename='scripts/index_scripts.js') }}"></script>
+</body>
+</html>
