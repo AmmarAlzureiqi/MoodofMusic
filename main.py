@@ -34,11 +34,11 @@ API_BASE_URL = os.getenv('API_BASE_URL')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 
-# @app.teardown_appcontext
-# def close_db(error):
-#     db = g.pop('db', None)
-#     if db is not None:
-#         db.close()
+@app.teardown_appcontext
+def close_db(error):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
 
 
 @app.route('/')
@@ -94,7 +94,6 @@ def get_playlist_info(): #getting playlist name and image (to create mood)
         return redirect('/login')
     if datetime.now().timestamp() > session['expires_at']:
         return redirect('/refresh-token')
-    print('asdsa')
 
     print(request.method)
     if request.method == 'POST':
@@ -270,5 +269,5 @@ def refresh_token():
         return redirect('/playlistsform')
     
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True, port = 5001)
+# if __name__ == '__main__':
+#     app.run(host='0.0.0.0', debug=True, port = 5001)
