@@ -9,7 +9,7 @@ import mysql.connector
 from flask import Flask, redirect, request, jsonify, session, render_template, url_for, flash, g
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from utils import create_playlist_fun, generate_image, compress_image_to_b64, image_to_desc, convert_to_jpg_b64, getdb, close_db, initdb
+from utils import create_playlist_fun, generate_image, compress_image_to_b64, image_to_desc, convert_to_jpg_b64, getdb, close_db
 from PIL import Image 
 from io import BytesIO
 from openai import OpenAI, OpenAIError
@@ -40,9 +40,6 @@ def close_db(error):
     if db is not None:
         db.close()
 
-# Initialize database tables at startup
-with app.app_context():
-    initdb()
 
 @app.route('/')
 def index():
@@ -186,7 +183,7 @@ def get_playlist_info(): #getting playlist name and image (to create mood)
 
     prmt_escaped = prmt.replace("'", "''")
     try:
-        cursor.execute(f"INSERT INTO playlists (playlistID, accname, pldate, prompt, image_url) VALUES ('{pplaylist}', '{user['id']}', '{datetime.today().strftime('%Y-%m-%d %H:%M:%S')}', '{prmt_escaped}', '{img_url}')")
+        cursor.execute(f"INSERT INTO playlists (playlistID, plname, pltheme, accname, pldate, prompt, image_url) VALUES ('{pplaylist}', '{pl_name}', '{pl_theme}', '{user['id']}', '{datetime.today().strftime('%Y-%m-%d %H:%M:%S')}', '{prmt_escaped}', '{img_url}')")
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_DUP_ENTRY:  # Handle duplicate entry error
             connection.rollback()
