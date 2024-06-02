@@ -7,6 +7,7 @@ import os
 import time
 
 from openai import OpenAI
+from requests.exceptions import RequestException
 from PIL import Image
 from io import BytesIO
 from flask import g
@@ -64,7 +65,7 @@ def image_to_desc(base64_image, openai_key, pl_theme="None"):
         raise Exception(f"OpenAI API error: {response_data.get('error', {}).get('message', 'Unknown error')}")
     
     res1 = response_data['choices'][0]['message']['content']
-    #print(response.json())
+    print(response.json())
     return res1
 
     
@@ -118,20 +119,45 @@ def create_playlist_fun(sp, username, playlist_name, playlist_description):
     playlists = sp.user_playlist_create(username, playlist_name, description = playlist_description, public=True)
 
 def generate_image(prmt):
-  client = OpenAI()
+    client = openai.OpenAI()  # Assuming this is the correct initialization for the OpenAI client
 
-  response = client.images.generate(
-    model="dall-e-3",
-    prompt=f"A cartoon picture of this description: {prmt}",
-    size="1024x1024",
-    quality="standard",
-    n=1,
-  )
-  img_url = response.data[0].url
-  response = requests.get(img_url)
-  image = Image.open(BytesIO(response.content))
+    try:
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt=f"A cartoon picture of this description: {prmt}",
+            size="1024x1024",
+            quality="standard",
+            n=1,
+        )
+        
+        if not response or not response.data:
+            print("No data received from OpenAI API")
+            return None
 
-  return image
+        img_url = response.data[0].url
+        if not img_url:
+            print("No URL found in the response data")
+            return None
+
+        # Log the URL for debugging purposes
+        print(f"Image URL: {img_url}")
+
+        img_response = requests.get(img_url)
+        img_response.raise_for_status()  # Raise an HTTPError for bad responses (4xx and 5xx)
+
+        image = Image.open(BytesIO(img_response.content))
+
+        return image
+
+    except RequestException as e:
+        print(f"Error fetching image from URL: {e}")
+        return None
+    except openai.error.OpenAIAPIError as e:
+        print(f"OpenAI API error: {e}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return None
 
 def compress_image(image, output_path, quality=85):
     image.save(output_path, format="JPEG", quality=quality)

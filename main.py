@@ -34,11 +34,11 @@ API_BASE_URL = os.getenv('API_BASE_URL')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 
-@app.teardown_appcontext
-def close_db(error):
-    db = g.pop('db', None)
-    if db is not None:
-        db.close()
+# @app.teardown_appcontext
+# def close_db(error):
+#     db = g.pop('db', None)
+#     if db is not None:
+#         db.close()
 
 
 @app.route('/')
@@ -94,6 +94,7 @@ def get_playlist_info(): #getting playlist name and image (to create mood)
         return redirect('/login')
     if datetime.now().timestamp() > session['expires_at']:
         return redirect('/refresh-token')
+    print('asdsa')
 
     print(request.method)
     if request.method == 'POST':
@@ -175,11 +176,11 @@ def get_playlist_info(): #getting playlist name and image (to create mood)
             raise  # Re-raise the exception if it's not a duplicate entry error
     # print(f"image url is : {img_url}")
 
-    # print('--------')
-    # print(pplaylist)
-    # print(user['id'])
-    # print(datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
-    # print(prmt)
+    print('--------')
+    print(pplaylist)
+    print(user['id'])
+    print(datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
+    print(prmt)
 
     prmt_escaped = prmt.replace("'", "''")
     try:
@@ -225,7 +226,7 @@ def create_playlist():
         artist = songitem[1]
         songsearch = sp.search(q=song)
         list_of_songs.append(songsearch['tracks']['items'][0]['uri'])
-    # print(list_of_songs)
+    print(list_of_songs)
 
     preplaylist =sp.user_playlists(user=user['id'])
     #print(preplaylist['items'][0]['id'])
