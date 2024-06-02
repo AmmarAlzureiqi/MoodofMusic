@@ -220,17 +220,17 @@ def create_playlist():
     session['plst_name'] = pplaylist
     sp.user_playlist_add_tracks(user['id'], pplaylist, list_of_songs)
 
-        # Query and print playlists
-    connection = getdb()
-    cursor = connection.cursor()
-    cursor.execute("SELECT * FROM playlists")
-    playlists = cursor.fetchall()
-    cursor.close()
-    connection.close()
+    # # Query and print playlists
+    # connection = getdb()
+    # cursor = connection.cursor()
+    # cursor.execute("SELECT * FROM playlists")
+    # playlists = cursor.fetchall()
+    # cursor.close()
+    # connection.close()
 
-    print("\nPlaylists in the database:")
-    for playlist in playlists:
-        print(playlist)
+    # print("\nPlaylists in the database:")
+    # for playlist in playlists:
+    #     print(playlist)
 
     return redirect('/curatedplaylist')
 

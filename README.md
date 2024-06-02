@@ -1,6 +1,6 @@
 # Mood of Music
 
-Mood of Music creates Spotify playlists from your environment images and embeds them on the site for instant listening.
+[Mood of Music](https://moodofmusic.onrender.com) creates Spotify playlists from your environment images and embeds them on the site for instant listening.
 
 ## Description
 
@@ -12,6 +12,7 @@ Mood of Music transforms your environment into a personalized auditory experienc
 - **Playlist Generation**: Generates a playlist of songs that match the setting/theme.
 - **Spotify Integration**: Adds the playlist directly to your Spotify account.
 - **Embedded Playlist**: The generated playlist is embedded on the website for immediate listening.
+- **PostgreSQL Database**: Stores the account names of users and the details of each playlist created.
 
 ## Technologies Used
 
@@ -20,8 +21,9 @@ Mood of Music transforms your environment into a personalized auditory experienc
 - **HTML/CSS/JavaScript**: Frontend development
 - **Spotify API**: Authentication and playlist management
 - **Spotipy**: Python library for Spotify
-- **Docker**: Containerization and deployment
 - **OpenAI API**: Image description and playlist generation
+- **PostgreSQL**: Database management
+- **Render.com**: Hosting and deployment
 
 ## Getting Started
 
@@ -30,9 +32,9 @@ Follow these steps to get the app up and running on your local machine.
 ### Prerequisites
 
 - Python 3.8 or higher
-- Docker
 - Spotify Developer Account
 - OpenAI API Key
+- PostgreSQL Database
 
 ### Installation
 
@@ -57,16 +59,23 @@ Follow these steps to get the app up and running on your local machine.
     TOKEN_URL=https://accounts.spotify.com/api/token
     API_BASE_URL=https://api.spotify.com/v1
 
-    DB_HOST=database_host
-    DB_USER=database_root
-    DB_PASSWORD=database_password
-    DB_DATABASE=database_name
-    DATABASE_URL=your_database_url
+    POSTGRES_HOST=your_database_host
+    POSTGRES_USER=your_database_user
+    POSTGRES_PASSWORD=your_database_password
+    POSTGRES_DB=your_database_name
     ```
 
-3. **Build and run the Docker container**:
+3. **Install dependencies**:
     ```sh
-    docker-compose up --build
+    pip install -r requirements.txt
+    ```
+
+4. **Set up the PostgreSQL database**:
+    Make sure your PostgreSQL database is running and the credentials match those in your `.env` file. Initialize the database using the provided SQL script or commands in your application.
+
+5. **Run the application**:
+    ```sh
+    python main.py
     ```
 
 ### Usage
@@ -76,6 +85,10 @@ Follow these steps to get the app up and running on your local machine.
 3. Upload an image, enter a playlist name and theme, and submit the form.
 4. The app will generate a playlist and add it to your Spotify account.
 5. Listen to the generated playlist embedded on the website.
+
+## Deployment
+
+The website and the PostgreSQL database are hosted on Render.com. To deploy the application on Render.com or any other hosting platform, ensure that you configure the environment variables and database settings as per the hosting platform's requirements.
 
 ## Contact
 
