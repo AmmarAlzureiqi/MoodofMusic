@@ -5,12 +5,15 @@ import base64
 import mysql.connector
 import os
 import time
+import psycopg2
+
 
 from openai import OpenAI
 from requests.exceptions import RequestException
 from PIL import Image
 from io import BytesIO
 from flask import g
+from psycopg2 import sql
 
 
 
@@ -181,21 +184,94 @@ def convert_to_jpg_b64(img):
     return img_str
 
 
+# def getdb():
+#     if 'db' not in g or not g.db.is_connected():
+#         g.db = mysql.connector.connect(
+#             host=os.getenv('MYSQL_HOST', 'localhost'),  # default to 'mysql_db' for Docker setup
+#             user=os.getenv('MYSQL_USER', 'root'),
+#             password=os.getenv('MYSQL_PASSWORD', 'test_root'),
+#             database=os.getenv('MYSQL_DB', 'moodofmusic')
+#         )
+#     return g.db
+
+# def close_db(e=None):
+#     db = g.pop('db', None)
+
+#     if db is not None and db.is_connected():
+#         db.close()
+
+
 def getdb():
-    if 'db' not in g or not g.db.is_connected():
-        g.db = mysql.connector.connect(
-            host=os.getenv('MYSQL_HOST', 'localhost'),  # default to 'mysql_db' for Docker setup
-            user=os.getenv('MYSQL_USER', 'root'),
-            password=os.getenv('MYSQL_PASSWORD', 'test_root'),
-            database=os.getenv('MYSQL_DB', 'moodofmusic')
+    if 'db' not in g or g.db.closed:
+        g.db = psycopg2.connect(
+            host=os.getenv('POSTGRES_HOST', 'localhost'),
+            user=os.getenv('POSTGRES_USER', 'postgres'),
+            password=os.getenv('POSTGRES_PASSWORD', 'your_password'),
+            dbname=os.getenv('POSTGRES_DB', 'moodofmusic')
         )
     return g.db
 
 def close_db(e=None):
     db = g.pop('db', None)
 
-    if db is not None and db.is_connected():
+    if db is not None:
         db.close()
+
+
+def insert_account(cursor, user_id):
+    try:
+        cursor.execute(
+            sql.SQL("INSERT INTO accounts (accname) VALUES (%s)"),
+            [user_id]
+        )
+    except psycopg2.IntegrityError as err:
+        if err.pgcode == '23505':  # Duplicate entry error code for PostgreSQL
+            print(f"Duplicate entry found for user ID: {user_id}")
+            cursor.connection.rollback()
+        else:
+            raise
+
+def insert_playlist(cursor, pplaylist, pl_name, pl_theme, user_id, prompt, img_url):
+    try:
+        cursor.execute(
+            sql.SQL("""
+                INSERT INTO playlists (playlistID, plname, pltheme, accname, pldate, prompt, image_url) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """),
+            [pplaylist, pl_name, pl_theme, user_id, datetime.today().strftime('%Y-%m-%d %H:%M:%S'), prompt.replace("'", "''"), img_url]
+        )
+    except psycopg2.IntegrityError as err:
+        if err.pgcode == '23505':  # Duplicate entry error code for PostgreSQL
+            print(f"Duplicate entry found for playlist ID: {pplaylist}")
+            cursor.connection.rollback()
+        else:
+            raise
+
+def initdb():
+    db = getdb()
+    cursor = db.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS accounts (
+        accname VARCHAR(255) NOT NULL PRIMARY KEY
+    )
+    ''')
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS playlists (
+        playlistID VARCHAR(100) NOT NULL,
+        plname VARCHAR(255),
+        pltheme VARCHAR(255),
+        accname VARCHAR(255) NOT NULL,
+        pldate TIMESTAMP,
+        prompt TEXT,
+        image_url VARCHAR(512),
+        PRIMARY KEY (playlistID),
+        FOREIGN KEY (accname) REFERENCES accounts(accname)
+    )
+    ''')
+    db.commit()
+    cursor.close()
+
+
 
 # def getdb():
 #     if 'db' not in g:

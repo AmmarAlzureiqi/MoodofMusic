@@ -1,21 +1,17 @@
+import os
+import psycopg2
 import requests
 import urllib.parse
-import os
 import spotipy
 import base64
 import openai
-import mysql.connector
-
 from flask import Flask, redirect, request, jsonify, session, render_template, url_for, flash, g
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from utils import create_playlist_fun, generate_image, compress_image_to_b64, image_to_desc, convert_to_jpg_b64, getdb, close_db
-from PIL import Image 
+from utils import create_playlist_fun, generate_image, compress_image_to_b64, image_to_desc, convert_to_jpg_b64, getdb, close_db, initdb
+from PIL import Image
 from io import BytesIO
 from openai import OpenAI, OpenAIError
-from mysql.connector import errorcode
-
-
 
 load_dotenv()
 
@@ -33,6 +29,8 @@ API_BASE_URL = os.getenv('API_BASE_URL')
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
+with app.app_context():
+    initdb()
 
 @app.teardown_appcontext
 def close_db(error):
@@ -40,11 +38,9 @@ def close_db(error):
     if db is not None:
         db.close()
 
-
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 @app.route('/login')
 def login():
@@ -59,7 +55,6 @@ def login():
 
     auth_url = f"{AUTH_URL}?{urllib.parse.urlencode(params)}"
     return redirect(auth_url)
-
 
 @app.route('/callback')
 def callback():
@@ -166,31 +161,22 @@ def get_playlist_info(): #getting playlist name and image (to create mood)
     cursor = connection.cursor()
 
     try:
-        cursor.execute(f"INSERT INTO accounts (accname) VALUES ('{user['id']}')")
-    except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_DUP_ENTRY:  # Handle duplicate entry error
-            connection.rollback()
-            print(f"Duplicate entry found for user ID: {user['id']}")
-        else:
-            raise  # Re-raise the exception if it's not a duplicate entry error
-    # print(f"image url is : {img_url}")
-
-    print('--------')
-    print(pplaylist)
-    print(user['id'])
-    print(datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
-    print(prmt)
+        cursor.execute(f"INSERT INTO accounts (accname) VALUES (%s)", (user['id'],))
+    except psycopg2.errors.UniqueViolation:  # Handle duplicate entry error
+        connection.rollback()
+        print(f"Duplicate entry found for user ID: {user['id']}")
+    except Exception as err:
+        raise  # Re-raise the exception if it's not a duplicate entry error
 
     prmt_escaped = prmt.replace("'", "''")
     try:
-        cursor.execute(f"INSERT INTO playlists (playlistID, plname, pltheme, accname, pldate, prompt, image_url) VALUES ('{pplaylist}', '{pl_name}', '{pl_theme}', '{user['id']}', '{datetime.today().strftime('%Y-%m-%d %H:%M:%S')}', '{prmt_escaped}', '{img_url}')")
-    except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_DUP_ENTRY:  # Handle duplicate entry error
-            connection.rollback()
-            print(f"Duplicate entry found for user ID: {pplaylist}")
-        else:
-            raise  # Re-raise the exception if it's not a duplicate entry error
-
+        cursor.execute(f"INSERT INTO playlists (playlistID, plname, pltheme, accname, pldate, prompt, image_url) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
+                       (pplaylist, pl_name, pl_theme, user['id'], datetime.today().strftime('%Y-%m-%d %H:%M:%S'), prmt_escaped, img_url))
+    except psycopg2.errors.UniqueViolation:  # Handle duplicate entry error
+        connection.rollback()
+        print(f"Duplicate entry found for user ID: {pplaylist}")
+    except Exception as err:
+        raise  # Re-raise the exception if it's not a duplicate entry error
 
     connection.commit()
     cursor.close()
@@ -231,9 +217,20 @@ def create_playlist():
     #print(preplaylist['items'][0]['id'])
     pplaylist = preplaylist['items'][0]['id']
     session['plst_name'] = pplaylist
-    sp.user_playlist_add_tracks(user = user['id'], playlist_id=pplaylist, tracks=list_of_songs)
-    
-    #print(f"\nPlaylist was created successfully.")
+    sp.user_playlist_add_tracks(user['id'], pplaylist, list_of_songs)
+
+        # Query and print playlists
+    connection = getdb()
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM playlists")
+    playlists = cursor.fetchall()
+    cursor.close()
+    connection.close()
+
+    print("\nPlaylists in the database:")
+    for playlist in playlists:
+        print(playlist)
+
     return redirect('/curatedplaylist')
 
 @app.route('/curatedplaylist', methods=['GET', 'POST'])
@@ -267,7 +264,6 @@ def refresh_token():
 
         
         return redirect('/playlistsform')
-    
 
-# if __name__ == '__main__':
-#     app.run(host='0.0.0.0', debug=True, port = 5001)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', debug=True, port = 5001)
