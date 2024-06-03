@@ -128,8 +128,8 @@ def get_playlist_info(): #getting playlist name and image (to create mood)
     session['pl_name'] = pl_name
     session['pl_theme'] = pl_theme
 
-    playlist_desc = "Your curated "
-    create_playlist_fun(sp, user['id'], pl_name, 'Test playlist created using python!')
+    playlist_desc = "Your curated playlist by MoodofMusic"
+    create_playlist_fun(sp, user['id'], pl_name, playlist_desc)
     preplaylist = sp.user_playlists(user=user['id'])
     pplaylist = preplaylist['items'][0]['id']
 
