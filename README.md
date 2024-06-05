@@ -23,6 +23,8 @@ Mood of Music transforms your environment into a personalized auditory experienc
 - **Spotipy**: Python library for Spotify
 - **OpenAI API**: Image description and playlist generation
 - **PostgreSQL**: Database management
+- **MySQL**: Alternative database management (via Docker)
+- **Docker**: Containerization
 - **Render.com**: Hosting and deployment
 
 ## Getting Started
@@ -40,7 +42,7 @@ Follow these steps to get the app up and running on your local machine.
 
 1. **Clone the repository**:
     ```sh
-    git clone https://github.com/yourusername/mood-of-music.git
+    git clone https://github.com/yourusername/moodofmusic.git
     cd mood-of-music
     ```
 
@@ -89,6 +91,9 @@ Follow these steps to get the app up and running on your local machine.
 ## Deployment
 
 The website and the PostgreSQL database are hosted on Render.com. To deploy the application on Render.com or any other hosting platform, ensure that you configure the environment variables and database settings as per the hosting platform's requirements.
+
+## Docker
+For those who prefer using Docker, a dockerized file is provided to run the web app using MySQL instead of PostgreSQL. The Docker setup encapsulates all the dependencies and database configurations, simplifying the deployment process. To use the Dockerized version, ensure Docker is installed on your machine, and follow the instructions in the dockerized file.
 
 ## Contact
 
