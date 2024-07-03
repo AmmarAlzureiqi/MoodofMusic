@@ -29,14 +29,14 @@ API_BASE_URL = os.getenv('API_BASE_URL')
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
-with app.app_context():
-    initdb()
+# with app.app_context():
+#     initdb()
 
-@app.teardown_appcontext
-def close_db(error):
-    db = g.pop('db', None)
-    if db is not None:
-        db.close()
+# @app.teardown_appcontext
+# def close_db(error):
+#     db = g.pop('db', None)
+#     if db is not None:
+#         db.close()
 
 @app.route('/')
 def index():
@@ -158,29 +158,29 @@ def get_playlist_info(): #getting playlist name and image (to create mood)
 
     img_url = preplaylist['items'][0]['images'][0]['url']
 
-    connection = getdb()
-    cursor = connection.cursor()
+    # connection = getdb()
+    # cursor = connection.cursor()
 
-    try:
-        cursor.execute(f"INSERT INTO accounts (accname) VALUES (%s)", (user['id'],))
-    except psycopg2.errors.UniqueViolation:  # Handle duplicate entry error
-        connection.rollback()
-        print(f"Duplicate entry found for user ID: {user['id']}")
-    except Exception as err:
-        raise  # Re-raise the exception if it's not a duplicate entry error
+    # try:
+    #     cursor.execute(f"INSERT INTO accounts (accname) VALUES (%s)", (user['id'],))
+    # except psycopg2.errors.UniqueViolation:  # Handle duplicate entry error
+    #     connection.rollback()
+    #     print(f"Duplicate entry found for user ID: {user['id']}")
+    # except Exception as err:
+    #     raise  # Re-raise the exception if it's not a duplicate entry error
 
-    prmt_escaped = prmt.replace("'", "''")
-    try:
-        cursor.execute(f"INSERT INTO playlists (playlistID, plname, pltheme, accname, pldate, prompt, image_url) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
-                       (pplaylist, pl_name, pl_theme, user['id'], datetime.today().strftime('%Y-%m-%d %H:%M:%S'), prmt_escaped, img_url))
-    except psycopg2.errors.UniqueViolation:  # Handle duplicate entry error
-        connection.rollback()
-        print(f"Duplicate entry found for user ID: {pplaylist}")
-    except Exception as err:
-        raise  # Re-raise the exception if it's not a duplicate entry error
+    # prmt_escaped = prmt.replace("'", "''")
+    # try:
+    #     cursor.execute(f"INSERT INTO playlists (playlistID, plname, pltheme, accname, pldate, prompt, image_url) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
+    #                    (pplaylist, pl_name, pl_theme, user['id'], datetime.today().strftime('%Y-%m-%d %H:%M:%S'), prmt_escaped, img_url))
+    # except psycopg2.errors.UniqueViolation:  # Handle duplicate entry error
+    #     connection.rollback()
+    #     print(f"Duplicate entry found for user ID: {pplaylist}")
+    # except Exception as err:
+    #     raise  # Re-raise the exception if it's not a duplicate entry error
 
-    connection.commit()
-    cursor.close()
+    # connection.commit()
+    # cursor.close()
 
     return redirect('/playlists')
 
