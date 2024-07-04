@@ -56,8 +56,8 @@ def login():
     auth_url = f"{AUTH_URL}?{urllib.parse.urlencode(params)}"
     return redirect(auth_url)
 
-#@app.route('/callback')
-@app.route('/oauth/spotify/callback')
+@app.route('/callback')
+#@app.route('/oauth/spotify/callback')
 def callback():
     if 'error' in request.args:
         return jsonify({"error": request.args["error"]})

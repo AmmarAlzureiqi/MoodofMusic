@@ -7,7 +7,8 @@ import os
 import time
 import psycopg2
 import transformers
-import torch
+from torch import no_grad
+import torch.nn.functional as F
 import numpy as np
 
 
@@ -363,12 +364,12 @@ def get_song_params(image):
     model = transformers.ViTForImageClassification.from_pretrained("google/vit-large-patch16-224")
 
     # Inference with the ViT model
-    with torch.no_grad():
+    with no_grad():
         # Get logits from the ViT model
         cat_idx = model(**image_processor(image, return_tensors="pt")).logits
         
         # Calculate softmax probabilities
-        probs = torch.nn.functional.softmax(cat_idx)[0, :len(idx2cat)]
+        probs = F.softmax(cat_idx)[0, :len(idx2cat)]
         
         # Calculate emotion values based on categories
         emotion = np.zeros(6, dtype=np.float32)  
