@@ -21,11 +21,15 @@ Mood of Music transforms your environment into a personalized auditory experienc
 - **HTML/CSS/JavaScript**: Frontend development
 - **Spotify API**: Authentication and playlist management
 - **Spotipy**: Python library for Spotify
+- **PyTorch**: Neural network framework for image processing
 - **OpenAI API**: Image description and playlist generation
 - **PostgreSQL**: Database management
 - **MySQL**: Alternative database management (via Docker)
 - **Docker**: Containerization
 - **Render.com**: Hosting and deployment
+
+## Song Recommendations
+Song recommendations are based on detected emotions from the environment images. The application uses a neural network model implemented with PyTorch to analyze images and extract emotional parameters such as valence, energy, danceability, tempo, loudness, and acousticness. These parameters are then used in conjunction with Spotify's recommendation API to generate playlists tailored to the detected mood.
 
 ## Getting Started
 
