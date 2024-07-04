@@ -8,7 +8,7 @@ import openai
 from flask import Flask, redirect, request, jsonify, session, render_template, url_for, flash, g
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from utils import create_playlist_fun, generate_image, compress_image_to_b64, image_to_desc, convert_to_jpg_b64, getdb, close_db, initdb
+from utils import image_to_desc2, get_song_params, emotion_cat2dim, get_recommendations, create_playlist_fun, generate_image, compress_image_to_b64, image_to_desc, convert_to_jpg_b64, getdb, close_db, initdb
 from PIL import Image
 from io import BytesIO
 from openai import OpenAI, OpenAIError
@@ -56,7 +56,7 @@ def login():
     auth_url = f"{AUTH_URL}?{urllib.parse.urlencode(params)}"
     return redirect(auth_url)
 
-# @app.route('/callback')
+#@app.route('/callback')
 @app.route('/oauth/spotify/callback')
 def callback():
     if 'error' in request.args:
@@ -107,24 +107,34 @@ def get_playlist_info(): #getting playlist name and image (to create mood)
         return redirect('/playlistsform')
 
     im = Image.open(playlist_image)
+    song_params = get_song_params(im)
+
+    session['valence'] = str(song_params[0])
+    session['energy'] = str(song_params[1])
+    session['danceability'] = str(song_params[2])
+    session['tempo'] = str(song_params[3])
+    session['loudness'] = str(song_params[4])
+    session['acousticness'] = str(song_params[5])
 
     img_str = convert_to_jpg_b64(im)
 
     sp = spotipy.Spotify(auth=session['access_token'], requests_timeout=30)
     user = sp.current_user()
 
-    try:
-        result1 = image_to_desc(img_str, OPENAI_API_KEY, pl_theme=pl_theme)
-    except Exception as e:
-        print(f"Failed to get image description: {e}")
-        flash('Error generating image description. Please try again.')
-        return redirect('/playlistsform')
+    # try:
+    #     result1 = image_to_desc(img_str, OPENAI_API_KEY, pl_theme=pl_theme)
+    # except Exception as e:
+    #     print(f"Failed to get image description: {e}")
+    #     flash('Error generating image description. Please try again.')
+    #     return redirect('/playlistsform')
 
-    if result1 is None:
-        flash('Failed to get image description from OpenAI.')
-        return redirect('/playlistsform')
+    # if result1 is None:
+    #     flash('Failed to get image description from OpenAI.')
+    #     return redirect('/playlistsform')
 
+    result1 = image_to_desc2(img_str, OPENAI_API_KEY, pl_theme=pl_theme)
     session['playlist_image'] = result1
+
     session['pl_name'] = pl_name
     session['pl_theme'] = pl_theme
 
@@ -133,12 +143,14 @@ def get_playlist_info(): #getting playlist name and image (to create mood)
     preplaylist = sp.user_playlists(user=user['id'])
     pplaylist = preplaylist['items'][0]['id']
 
-    prmt = result1.split('$&$')[0]
+    prmt = result1
+    print(prmt)
 
     image = None
 
     try:
         image = generate_image(prmt)
+        #image = generate_image("beautiful landscape by the beach, with sunset")
     except OpenAIError as e:
         print(f'{e}')
             
@@ -192,27 +204,34 @@ def create_playlist():
     sp = spotipy.Spotify(auth=session['access_token'])
     user = sp.current_user()
 
-    response1 = session['playlist_image'].split('$&$')
-    prompt = response1[0]
-    # print('---------')
-    # print(prompt)
-    songlist = response1[1].split('&,')
+    response1 = session['playlist_image']
+    # prompt = response1[0]
 
-    print(songlist)
+    #songlist = response1[1].split('&,')
 
-    if len(songlist) == 1:
-        songlist = response1[1].split('&),')
+    #print(songlist)
+
+    # if len(songlist) == 1:
+    #     songlist = response1[1].split('&),')
 
     #create_playlist_fun(sp, user['id'], pl_name, 'Test playlist created using python!')
+    song_params = [float(session['valence']), float(session['energy']), float(session['danceability']), float(session['tempo']), float(session['loudness']), float(session['acousticness'])]
+
+    genres = ['pop', 'country', 'hip-hop', 'rock', 'indie']
+    recommendations = get_recommendations(sp,genres,song_params[0],song_params[1],song_params[2],song_params[3],song_params[4],song_params[5])
+     
     list_of_songs = []
 
-    for songitem in songlist:
-        songitem = songitem.replace("\n","").split(': ')
-        song = songitem[0]
-        artist = songitem[1]
-        songsearch = sp.search(q=song)
-        list_of_songs.append(songsearch['tracks']['items'][0]['uri'])
-    print(list_of_songs)
+    # for songitem in songlist:
+    #     songitem = songitem.replace("\n","").split(': ')
+    #     song = songitem[0]
+    #     artist = songitem[1]
+    #     songsearch = sp.search(q=song)
+    #     list_of_songs.append(songsearch['tracks']['items'][0]['uri'])
+    # print(list_of_songs)
+
+    for track in recommendations:
+        list_of_songs.append(track['uri'])
 
     preplaylist =sp.user_playlists(user=user['id'])
     #print(preplaylist['items'][0]['id'])
@@ -266,5 +285,5 @@ def refresh_token():
         
         return redirect('/playlistsform')
 
-# if __name__ == '__main__':
-#     app.run(host='0.0.0.0', debug=True, port = 5001)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', debug=True, port = 5001)

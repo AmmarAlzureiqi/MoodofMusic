@@ -6,6 +6,9 @@ import mysql.connector
 import os
 import time
 import psycopg2
+import transformers
+import torch
+import numpy as np
 
 
 from openai import OpenAI
@@ -69,6 +72,49 @@ def image_to_desc(base64_image, openai_key, pl_theme="None"):
     
     res1 = response_data['choices'][0]['message']['content']
     print(response.json())
+    return res1
+
+def image_to_desc2(base64_image, openai_key, pl_theme="None"):
+    openai.api_key = openai_key
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {openai.api_key}"
+    }
+
+    
+    payload = {
+        "model": "gpt-4-vision-preview",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"""
+                        Can you describe the image given, so that the decription can be later used to make cartoon version for a spotify playlist cover.
+                        Don't make your response too long, and only include the description in your response.
+                """
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}"
+                        }
+                    }
+                ]
+            }
+        ],
+        "max_tokens": 500
+    }
+
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+    response_data = response.json()
+    
+    if response.status_code != 200:
+        raise Exception(f"OpenAI API error: {response_data.get('error', {}).get('message', 'Unknown error')}")
+    
+    res1 = response_data['choices'][0]['message']['content']
     return res1
 
 def create_playlist_fun(sp, username, playlist_name, playlist_description):
@@ -267,3 +313,73 @@ def initdb():
 #     ''')
 #     db.commit()
 #     cursor.close()
+
+def get_recommendations(sp, genres, valence, energy, danceability, tempo, loudness, acousticness):
+    recommendations = sp.recommendations(limit=20, seed_genres=genres, target_valence=valence, target_energy=energy, target_danceability=danceability, target_tempo=tempo, target_loudness=loudness, target_acousticness=acousticness)['tracks']
+    return recommendations
+
+def emotion_cat2dim(category: str) -> tuple[float, float, float, float, float]:
+    if category == "amusement":
+        valence, energ = 0.55, 0.1
+        danceability, tempo, loudness, acousticness = 0.7, 150, -8, 0.2
+    elif category == "anger":
+        valence, energ = -0.4, 0.8
+        danceability, tempo, loudness, acousticness = 0.6, 170, -7, 0.1
+    elif category == "awe":
+        valence, energ = 0.3, 0.9
+        danceability, tempo, loudness, acousticness = 0.8, 140, -10, 0.3
+    elif category == "contentment":
+        valence, energ = 0.9, -0.3
+        danceability, tempo, loudness, acousticness = 0.5, 130, -9, 0.4
+    elif category == "disgust":
+        valence, energ = -0.7, 0.5
+        danceability, tempo, loudness, acousticness = 0.4, 160, -6, 0.05
+    elif category == "excitement":
+        valence, energ = 0.7, 0.7
+        danceability, tempo, loudness, acousticness = 0.9, 180, -5, 0.15
+    elif category == "fear":
+        valence, energ = -0.1, 0.7
+        danceability, tempo, loudness, acousticness = 0.3, 150, -11, 0.25
+    elif category == "sadness":
+        valence, energ = -0.8, -0.7
+        danceability, tempo, loudness, acousticness = 0.2, 120, -12, 0.1
+    return (valence/1.7 + 0.85, energ/1.6 + 0.8, danceability, tempo, loudness, acousticness)
+
+def get_song_params(image):
+        
+    # Emotional categories
+    idx2cat = [
+        "amusement",
+        "anger",
+        "awe",
+        "contentment",
+        "disgust",
+        "excitement",
+        "fear",
+        "sadness",
+    ]
+
+    image_processor = transformers.ViTImageProcessor.from_pretrained("google/vit-large-patch16-224")
+    model = transformers.ViTForImageClassification.from_pretrained("google/vit-large-patch16-224")
+
+    # Inference with the ViT model
+    with torch.no_grad():
+        # Get logits from the ViT model
+        cat_idx = model(**image_processor(image, return_tensors="pt")).logits
+        
+        # Calculate softmax probabilities
+        probs = torch.nn.functional.softmax(cat_idx)[0, :len(idx2cat)]
+        
+        # Calculate emotion values based on categories
+        emotion = np.zeros(6, dtype=np.float32)  
+        for idx, cat in enumerate(idx2cat):
+            valence, energ, danceability, tempo, loudness, acousticness = emotion_cat2dim(cat)
+            emotion[0] += valence * probs[idx].item()
+            emotion[1] += energ * probs[idx].item()
+            emotion[2] += danceability * probs[idx].item()
+            emotion[3] += tempo * probs[idx].item()
+            emotion[4] += loudness * probs[idx].item()
+            emotion[5] += acousticness * probs[idx].item()
+
+        return emotion
+
