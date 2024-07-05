@@ -319,6 +319,17 @@ def get_recommendations(sp, genres, valence, energy, danceability, tempo, loudne
     recommendations = sp.recommendations(limit=20, seed_genres=genres, target_valence=valence, target_energy=energy, target_danceability=danceability, target_tempo=tempo, target_loudness=loudness, target_acousticness=acousticness)['tracks']
     return recommendations
 
+def get_recommendations_artist(sp,artists):
+    recommendations = sp.recommendations(limit=20, seed_artists=artists)['tracks']
+    return recommendations
+
+def get_top_artists(sp):
+    top_artists = sp.current_user_top_artists(limit=5, time_range="medium_term")
+    artsts=[]
+    for artist in top_artists["items"]:
+        artsts.append(artist["id"])
+    return artsts
+
 def emotion_cat2dim(category: str) -> tuple[float, float, float, float, float]:
     if category == "amusement":
         valence, energ = 0.55, 0.1

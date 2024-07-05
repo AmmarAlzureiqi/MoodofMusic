@@ -8,7 +8,7 @@ import openai
 from flask import Flask, redirect, request, jsonify, session, render_template, url_for, flash, g
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from utils import image_to_desc2, get_song_params, emotion_cat2dim, get_recommendations, create_playlist_fun, generate_image, compress_image_to_b64, image_to_desc, convert_to_jpg_b64, getdb, close_db, initdb
+from utils import get_recommendations_artist, get_top_artists, image_to_desc2, get_song_params, emotion_cat2dim, get_recommendations, create_playlist_fun, generate_image, compress_image_to_b64, image_to_desc, convert_to_jpg_b64, getdb, close_db, initdb
 from PIL import Image
 from io import BytesIO
 from openai import OpenAI, OpenAIError
@@ -44,7 +44,7 @@ def index():
 
 @app.route('/login')
 def login():
-    scope = 'user-read-private user-read-email playlist-read-private playlist-modify-public playlist-modify-private ugc-image-upload'
+    scope = 'user-read-private user-top-read user-read-email playlist-read-private playlist-modify-public playlist-modify-private ugc-image-upload'
     params = {
         'client_id': CLIENT_ID,
         'response_type': 'code',
@@ -120,6 +120,7 @@ def get_playlist_info(): #getting playlist name and image (to create mood)
 
     sp = spotipy.Spotify(auth=session['access_token'], requests_timeout=30)
     user = sp.current_user()
+
 
     # try:
     #     result1 = image_to_desc(img_str, OPENAI_API_KEY, pl_theme=pl_theme)
@@ -233,6 +234,7 @@ def create_playlist():
     for track in recommendations:
         list_of_songs.append(track['uri'])
 
+
     preplaylist =sp.user_playlists(user=user['id'])
     #print(preplaylist['items'][0]['id'])
     pplaylist = preplaylist['items'][0]['id']
@@ -251,6 +253,33 @@ def create_playlist():
     # for playlist in playlists:
     #     print(playlist)
 
+    artists_list = get_top_artists(sp)
+
+    recommendations = get_recommendations_artist(sp, artists_list)
+    list_of_songs2 = []
+
+    for track in recommendations:
+        list_of_songs2.append(track['uri'])
+
+
+    playlist_desc2 = "Your curated playlist by MoodofMusic, based on your top artists!"
+    create_playlist_fun(sp, user['id'], "For You Playlist", playlist_desc2)
+    preplaylist2 = sp.user_playlists(user=user['id'])
+    pplaylist2 = preplaylist2['items'][0]['id']
+
+    image = Image.open('images/playlist_image.jpg')
+    compressed_image_b64 = compress_image_to_b64(image, quality=75)
+    i = 5
+    while len(compressed_image_b64) >= 170000:
+        compressed_image_b64 = compress_image_to_b64(image, quality=75 - i)
+        i += 5
+
+    sp.playlist_upload_cover_image(pplaylist2, compressed_image_b64)
+
+    session['plst_name2'] = pplaylist2
+    sp.user_playlist_add_tracks(user['id'], pplaylist2, list_of_songs2)
+
+
     return redirect('/curatedplaylist')
 
 @app.route('/curatedplaylist', methods=['GET', 'POST'])
@@ -258,8 +287,9 @@ def display_curatedplaylist():
     #print(session['playlist_image'])
     #plst = f"https://open.spotify.com/embed/playlist/{session['plst_name']}?utm_source=generator"
     plst = f"https://open.spotify.com/embed/playlist/{session['plst_name']}?utm_source=generator&theme=0"
+    plst2 = f"https://open.spotify.com/embed/playlist/{session['plst_name2']}?utm_source=generator&theme=0"
     
-    return render_template('listpl.html', plst_url=plst)
+    return render_template('listpl.html', plst_url=plst,  plst_url2=plst2)
 
 
 
