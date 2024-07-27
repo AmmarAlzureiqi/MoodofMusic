@@ -8,14 +8,12 @@ import openai
 from flask import Flask, redirect, request, jsonify, session, render_template, url_for, flash, g
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from utils import get_recommendations_artist, get_top_artists, image_to_desc2, get_song_params, emotion_cat2dim, get_recommendations, create_playlist_fun, generate_image, compress_image_to_b64, image_to_desc, convert_to_jpg_b64, getdb, close_db, initdb
+from .utils import get_recommendations_artist, get_top_artists, image_to_desc2, get_song_params, emotion_cat2dim, get_recommendations, create_playlist_fun, generate_image, compress_image_to_b64, image_to_desc, convert_to_jpg_b64, getdb, close_db, initdb
 from PIL import Image
 from io import BytesIO
 from openai import OpenAI, OpenAIError
+from app import app
 
-load_dotenv()
-
-app = Flask(__name__)
 
 app.secret_key = os.getenv('APP_SECRET_KEY')
 
@@ -28,6 +26,7 @@ TOKEN_URL = os.getenv('TOKEN_URL')
 API_BASE_URL = os.getenv('API_BASE_URL')
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
 
 # with app.app_context():
 #     initdb()
@@ -56,8 +55,8 @@ def login():
     auth_url = f"{AUTH_URL}?{urllib.parse.urlencode(params)}"
     return redirect(auth_url)
 
-#@app.route('/callback')
-@app.route('/oauth/spotify/callback')
+@app.route('/callback')
+# @app.route('/oauth/spotify/callback')
 def callback():
     if 'error' in request.args:
         return jsonify({"error": request.args["error"]})
@@ -315,5 +314,3 @@ def refresh_token():
         
         return redirect('/playlistsform')
 
-# if __name__ == '__main__':
-#     app.run(host='0.0.0.0', debug=True, port = 5001)
